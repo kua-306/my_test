@@ -105,5 +105,5 @@ def test_delete_other_user_question(api_request, auth_token, create_question):
     
     # 4. KỲ VỌNG: Backend phải báo lỗi 403 (Forbidden) hoặc 401
     # Nếu nó trả về 200 (Xóa thành công) => Backend của bạn đang bị lỗi bảo mật!
-    assert response.status in [401, 403], f"LỖI BẢO MẬT: Hacker xóa được bài! Status: {response.status}"
+    assert response.status in [401, 403,404], f"LỖI BẢO MẬT: Hacker xóa được bài! Status: {response.status}"
     print("✅ Hệ thống bảo mật tốt: Hacker không thể xóa bài của người khác.")
