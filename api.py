@@ -87,9 +87,9 @@ async def create_user(user:UserCreate,db : AsyncSession = Depends(get_db)):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='User already exists')
-    hashed_pw = hash_password(user.password)
+    # hashed_pw = hash_password(user.password)
     new_user = models.Users(username=user.username, 
-        password=hashed_pw)
+        password=user.password)
     db.add(new_user)
     # logger.info(f"Da luu user: {new_user.username} vao db")
     await db.commit()
@@ -103,7 +103,7 @@ async def login(
     query = select(models.Users).where(models.Users.username == user.username)
     result = await db.execute(query)
     check_user = result.scalar_one_or_none()
-    if not check_user or not verify_password(user.password,check_user.password):
+    if not check_user or not user.password==check_user.password:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail='username or password is incorrect')
