@@ -8,19 +8,19 @@ def api_page(page: Page):
     # Tạo username ngẫu nhiên để không bao giờ bị trùng    
     page.goto('http://127.0.0.1:8000/docs')
     
-    signup_section = page.locator("#operations-default-create_user_create_user__post")
-    signup_section.click()
-    signup_section.get_by_role("button", name="Try it out").click()
-    signup_section.locator("textarea.body-param__text").fill('{"username": "number1","password": "number1"}')
+    # signup_section = page.locator("#operations-default-create_user_create_user__post")
+    # signup_section.click()
+    # signup_section.get_by_role("button", name="Try it out").click()
+    # signup_section.locator("textarea.body-param__text").fill('{"username": "number1","password": "number1"}')
     
-    with page.expect_response("**/create-user/", timeout=5000) as signup_res:
-        signup_section.get_by_role("button", name="Execute").click()
+    # with page.expect_response("**/create-user/", timeout=5000) as signup_res:
+    #     signup_section.get_by_role("button", name="Execute").click()
     
-    # Nếu đăng ký thất bại, in ra lỗi để soi
-    if signup_res.value.status not in [200, 201]:
-        print(f"SIGNUP FAILED: {signup_res.value.json()}")
+    # # Nếu đăng ký thất bại, in ra lỗi để soi
+    # if signup_res.value.status not in [200, 201]:
+    #     print(f"SIGNUP FAILED: {signup_res.value.json()}")
         
-    signup_section.click() 
+    # signup_section.click() 
 
     # --- BƯỚC 2: ĐĂNG NHẬP ---
     login_section = page.locator("#operations-default-login_login__post")
@@ -92,3 +92,13 @@ def test_delete(api_page, create_question):
     section.get_by_role("textbox", name="question_id").fill(question_id)
     section.get_by_role("button", name="Execute").click()
     expect(section.get_by_text("Question deleted successfully")).to_be_visible()
+
+def test_loginfail(page: Page):
+    page.goto('http://127.0.0.1:8000/docs')
+    login_section = page.locator("#operations-default-login_login__post")
+    login_section.click()
+    login_section.get_by_role("button", name="Try it out").click()
+    login_section.locator("textarea.body-param__text").fill('{"username": "number1","password": "number2"}')
+    login_section.get_by_role("button", name="Execute").click()
+    expect(login_section.get_by_text("username or password is incorrect")).to_be_visible()
+
