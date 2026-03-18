@@ -9,15 +9,23 @@ from typing import Optional
 import models
 from database import get_db,Base
 from schemas import UserCreate,Token,Questions,QCreate,User,UserQ
-from auth import hash_password,verify_password,decode_access_token,create_access_token
+from auth import hash_password,verify_password,decode_access_token,create_access_token,get_current_user
 import schedule
 import time
 from datetime import datetime
-import logging
-from logger import logger
+from loguru import logger
 import sys
+# from slowapi import Limiter, _rate_limit_exceeded_handler
+# from slowapi.util import get_remote_address
+# from slowapi.errors import RateLimitExceeded
+# from fastapi.middleware.cors import CORSMiddleware
+import os
+from dotenv import load_dotenv  
+load_dotenv()
 
-engine = create_engine('postgresql://postgres:ntltcua3006@localhost/Quizz')
+DATABASE_URL = os.getenv('db_url')
+
+engine = create_engine(DATABASE_URL)
 Base.metadata.create_all(engine)
 
 app = FastAPI()
@@ -29,21 +37,6 @@ app = FastAPI()
 #     allow_methods=["*"],
 #     allow_headers=["*"],
 # )
-# app.add_middleware()
-
-#get logger
-# logger = logging.getLogger()
-# #create formmater
-# formatter = logging.Formatter(fmt ='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-# #create file handler
-# stream_handler = logging.StreamHandler(sys.stdout)
-# file_hanler = logging.FileHandler('app.log')
-# #set formmater
-# stream_handler.setFormatter(formatter)
-# file_hanler.setFormatter(formatter)
-# #add handler
-# logger.handlers = [stream_handler,file_hanler]
-# logger.setLevel(logging.INFO)
 
 # def job():
 #    job_time=logger.info('Time at now: ')
@@ -53,19 +46,37 @@ app = FastAPI()
 #    schedule.run_pending()
 #    time.sleep(1)
 
+# limiter = Limiter(key_func=get_remote_address)
+# app.state.limiter = limiter()
+# app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+# @limiter.limit("10/minute")
 
+logger.remove()
+logger.add(sys.stderr, format="{time} {level} {message}", level="INFO")
+logger.add("logging.log", format="{time} {level} {message}", level="INFO")
 
 
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request: Request, exc: HTTPException):
+    logger.warning(f"HTTPException: {exc.detail}")
     return JSONResponse(
         status_code=exc.status_code,
         content={
             "status": "error",
             "message": 'Something went wrong',
-            "detail": exc.detail},
+            "detail": str(exc)},
     )
-
+@app.exception_handler(Exception)
+async def exception_handler(request: Request, exc: Exception):
+    logger.error(f"Exception: {exc}")
+    return JSONResponse(
+        status_code=500,
+        content={
+            "status": "error",
+            "message": "System error",
+            "detail": str(exc)
+        }
+    )
 @app.post('/create-user/',response_model=UserCreate,status_code = status.HTTP_201_CREATED)
 async def create_user(user:UserCreate,db : AsyncSession = Depends(get_db)):
     query = select(models.Users).where(models.Users.username == user.username)
@@ -78,6 +89,7 @@ async def create_user(user:UserCreate,db : AsyncSession = Depends(get_db)):
     user.password = hash_password(user.password)
     new_user = models.Users(**user.dict())
     db.add(new_user)
+    logger.info(f"Da luu user: {new_user.username} vao db")
     await db.commit()
     await db.refresh(new_user)
     return new_user
@@ -130,16 +142,16 @@ async def get_user(db : AsyncSession = Depends(get_db)):
           response_model=Questions,
           status_code = status.HTTP_201_CREATED
         )
-async def create_question(question:QCreate,db : AsyncSession = Depends(get_db),current_user: int = Depends(decode_access_token)):
-    new_question = models.Questions(**question.dict(),user_id=int(current_user))
+async def create_question(question:QCreate,db : AsyncSession = Depends(get_db),current_user: models.Users = Depends(get_current_user)):
+    new_question = models.Questions(**question.dict(),user_id=current_user.id)
     db.add(new_question)
     await db.commit()
     await db.refresh(new_question)
     return new_question
 
 @app.get('/get-question/{question_id}',status_code = status.HTTP_200_OK,response_model=Questions)
-async def get_question(question_id:int,db : AsyncSession = Depends(get_db),current_user: int = Depends(decode_access_token)):
-    query = select(models.Questions).where(models.Questions.user_id == int(current_user),models.Questions.id == question_id)
+async def get_question(question_id:int,db : AsyncSession = Depends(get_db),current_user: models.Users = Depends(get_current_user)):
+    query = select(models.Questions).where(models.Questions.user_id == current_user.id,models.Questions.id == question_id)
     result = await db.execute(query)
     check_question = result.scalar_one_or_none()
     if not check_question:
@@ -149,9 +161,9 @@ async def get_question(question_id:int,db : AsyncSession = Depends(get_db),curre
     return check_question
 
 @app.get('/get-all-question/',status_code = status.HTTP_200_OK,response_model=list[Questions])
-async def get_all_question(db : AsyncSession = Depends(get_db),current_user: int = Depends(decode_access_token)):
+async def get_all_question(db : AsyncSession = Depends(get_db),current_user: models.Users = Depends(get_current_user)):
     try:
-        query = select(models.Questions).where(models.Questions.user_id == int(current_user))
+        query = select(models.Questions).where(models.Questions.user_id == current_user.id)
         result = await db.execute(query)
         check_question = result.scalars().all()
         return check_question
@@ -167,8 +179,8 @@ class questionUpdate(BaseModel):
     answer: Optional[str] = None
 
 @app.patch('/update-question/{question_id}',status_code = status.HTTP_200_OK,response_model=Questions)
-async def update_question(question_id:int,question:questionUpdate,current_user: int = Depends(decode_access_token),db : AsyncSession = Depends(get_db)):
-    query = select(models.Questions).where(models.Questions.id == question_id,models.Questions.user_id == int(current_user))
+async def update_question(question_id:int,question:questionUpdate,current_user: models.Users = Depends(get_current_user),db : AsyncSession = Depends(get_db)):
+    query = select(models.Questions).where(models.Questions.id == question_id,models.Questions.user_id == current_user.id)
     result = await db.execute(query)
     check_question = result.scalar_one_or_none()
     if not check_question:
@@ -184,8 +196,8 @@ async def update_question(question_id:int,question:questionUpdate,current_user: 
     return check_question
 
 @app.delete('/delete-question/{question_id}',status_code = status.HTTP_200_OK)
-async def delete_question(question_id:int,db : AsyncSession = Depends(get_db),current_user: int = Depends(decode_access_token)):
-    query = select(models.Questions).where(models.Questions.id == question_id,models.Questions.user_id == int(current_user))
+async def delete_question(question_id:int,db : AsyncSession = Depends(get_db),current_user: models.Users = Depends(get_current_user)):
+    query = select(models.Questions).where(models.Questions.id == question_id,models.Questions.user_id == current_user.id)
     result = await db.execute(query)
     check_question = result.scalar_one_or_none()
     if not check_question:
@@ -197,58 +209,58 @@ async def delete_question(question_id:int,db : AsyncSession = Depends(get_db),cu
     await db.commit()
     return {'message':'Question deleted successfully'}
 
-# --- 1. THÊM IMPORT MỚI ---
-from google.oauth2 import id_token
-from google.auth.transport import requests as google_requests
-from pydantic import BaseModel
-import secrets # Để tạo mật khẩu ngẫu nhiên cho user Google
+# # --- 1. THÊM IMPORT MỚI ---
+# from google.oauth2 import id_token
+# from google.auth.transport import requests as google_requests
+# from pydantic import BaseModel
+# import secrets # Để tạo mật khẩu ngẫu nhiên cho user Google
 
-# --- 2. CẤU HÌNH ---
-# Thay dòng này bằng CLIENT ID bạn vừa lấy ở Bước 1
-GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID_HERE.apps.googleusercontent.com"
+# # --- 2. CẤU HÌNH ---
+# # Thay dòng này bằng CLIENT ID bạn vừa lấy ở Bước 1
+# GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID_HERE.apps.googleusercontent.com"
 
-# Schema cho body gửi lên
-class GoogleLoginRequest(BaseModel):
-    token: str
+# # Schema cho body gửi lên
+# class GoogleLoginRequest(BaseModel):
+#     token: str
 
-# --- 3. ENDPOINT XỬ LÝ ĐĂNG NHẬP GOOGLE ---
-@app.post("/google-login", status_code=status.HTTP_200_OK)
-async def google_login(request: GoogleLoginRequest, db: AsyncSession = Depends(get_db)):
-    try:
-        # Xác thực token với Google
-        id_info = id_token.verify_oauth2_token(
-            request.token, 
-            google_requests.Request(), 
-            GOOGLE_CLIENT_ID
-        )
+# # --- 3. ENDPOINT XỬ LÝ ĐĂNG NHẬP GOOGLE ---
+# @app.post("/google-login", status_code=status.HTTP_200_OK)
+# async def google_login(request: GoogleLoginRequest, db: AsyncSession = Depends(get_db)):
+#     try:
+#         # Xác thực token với Google
+#         id_info = id_token.verify_oauth2_token(
+#             request.token, 
+#             google_requests.Request(), 
+#             GOOGLE_CLIENT_ID
+#         )
 
-        email = id_info['email']
+#         email = id_info['email']
         
-        # Kiểm tra xem user này đã có trong DB chưa (Dùng email làm username)
-        query=select(models.User).filter(models.User.username == email)
-        db_user = await db.execute(query)
-        db_user = db_user.scalar_one_or_none()
-        if not db_user:
-            # Nếu chưa có -> Tự động Đăng ký
-            # Tạo mật khẩu ngẫu nhiên vì họ dùng Google login, không cần pass
-            random_password = secrets.token_urlsafe(16)
-            hashed_password = hash_password(random_password)
+#         # Kiểm tra xem user này đã có trong DB chưa (Dùng email làm username)
+#         query=select(models.Users).filter(models.Users.username == email)
+#         db_user = await db.execute(query)
+#         db_user = db_user.scalar_one_or_none()
+#         if not db_user:
+#             # Nếu chưa có -> Tự động Đăng ký
+#             # Tạo mật khẩu ngẫu nhiên vì họ dùng Google login, không cần pass
+#             random_password = secrets.token_urlsafe(16)
+#             hashed_password = hash_password(random_password)
             
-            new_user = models.User(
-                username=email,
-                password=hashed_password
-            )
-            db.add(new_user)
-            db.commit()
-            db.refresh(new_user)
-            user_id = new_user.id
-        else:
-            user_id = db_user.id
-        # Tạo Token của app mình (JWT)
-        access_token = create_access_token(data={"sub": str(user_id)})
-        return {"status": "login successfully", "access_token": access_token, "token_type": "bearer"}
+#             new_user = models.Users(
+#                 username=email,
+#                 password=hashed_password
+#             )
+#             db.add(new_user)
+#             db.commit()
+#             db.refresh(new_user)
+#             user_id = new_user.id
+#         else:
+#             user_id = db_user.id
+#         # Tạo Token của app mình (JWT)
+#         access_token = create_access_token(data={"sub": str(user_id)})
+#         return {"status": "login successfully", "access_token": access_token, "token_type": "bearer"}
 
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Token Google không hợp lệ")
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+#     except ValueError:
+#         raise HTTPException(status_code=400, detail="Token Google không hợp lệ")
+#     except Exception as e:
+#         raise HTTPException(status_code=500, detail=str(e))
