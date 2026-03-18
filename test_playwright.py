@@ -5,18 +5,13 @@ import random
 
 @pytest.fixture
 def api_page(page: Page):
-    # Tạo username ngẫu nhiên để không bao giờ bị trùng
-    rand_id = random.randint(1000, 9999)
-    username = f"user_{rand_id}"
-    password = "password123"
-    payload = f'{{"username": "{username}", "password": "{password}"}}'
-    
+    # Tạo username ngẫu nhiên để không bao giờ bị trùng    
     page.goto('http://127.0.0.1:8000/docs')
     
     signup_section = page.locator("#operations-default-create_user_create_user__post")
     signup_section.click()
     signup_section.get_by_role("button", name="Try it out").click()
-    signup_section.locator("textarea.body-param__text").fill(payload)
+    signup_section.locator("textarea.body-param__text").fill('{"username": "number1","password": "number1"}')
     
     with page.expect_response("**/create-user/", timeout=5000) as signup_res:
         signup_section.get_by_role("button", name="Execute").click()
@@ -31,7 +26,7 @@ def api_page(page: Page):
     login_section = page.locator("#operations-default-login_login__post")
     login_section.click()
     login_section.get_by_role("button", name="Try it out").click()
-    login_section.locator("textarea.body-param__text").fill(payload)
+    login_section.locator("textarea.body-param__text").fill('{"username": "number1","password": "number1"}')
 
     with page.expect_response("**/login/", timeout=5000) as login_res:
         login_section.get_by_role("button", name="Execute").click()
@@ -41,7 +36,6 @@ def api_page(page: Page):
     # Bắt lỗi 400 tại đây và in ra chi tiết nhất có thể
     if 'access_token' not in resp_json:
         print(f"LOGIN FAILED. Status: {login_res.value.status}")
-        print(f"Payload sent: {payload}")
         print(f"API Response: {resp_json}")
         raise KeyError(f"Login Error: {resp_json.get('detail', 'No detail')}")
 
@@ -56,7 +50,7 @@ def create_question(api_page):
     section.click()
     section.get_by_role("button", name="Try it out").click()
     section.locator("textarea.body-param__text").fill(
-        '{"question": "Python?", "options": ["Ngôn ngữ", "Con rắn"], "answer": "Ngôn ngữ"}'
+        '{"question": "Python?", "answer": "Ngôn ngữ"}'
     )
     
     with api_page.expect_response("**/create-question/") as response_info:
