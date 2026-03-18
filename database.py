@@ -8,7 +8,7 @@ load_dotenv()
 
 URL_DATABASE = os.getenv('DATABASE_URL')
 
-engine = create_async_engine(URL_DATABASE)
+engine = create_async_engine(URL_DATABASE,connect_args={"check_same_thread": False})
 Base = declarative_base()
 async_session = sessionmaker(engine, expire_on_commit=False, class_=AsyncSession)
 
