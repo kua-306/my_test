@@ -1,9 +1,11 @@
 import pytest
 from playwright.sync_api import Page, expect
 
-def test_signup(page: Page):
+@pytest.fixture
+def api_page(page: Page):
     page.goto('http://127.0.0.1:8000/docs')
-    # Đăng ký
+    
+    # --- BƯỚC 1: ĐĂNG KÝ USER TRƯỚC (Để chắc chắn user tồn tại) ---
     signup_section = page.locator("#operations-default-create_user_create_user__post")
     signup_section.click()
     signup_section.get_by_role("button", name="Try it out").click()
@@ -11,12 +13,10 @@ def test_signup(page: Page):
         '{"username": "string3006", "password": "string"}'
     )
     signup_section.get_by_role("button", name="Execute").click()
+    # Không cần assert chỗ này, nếu user tồn tại rồi thì nó báo lỗi 400 cũng không sao
+    signup_section.click() # Đóng lại
 
-
-@pytest.fixture
-def api_page(page: Page):
-    page.goto('http://127.0.0.1:8000/docs')
-    # Đăng nhập
+    # --- BƯỚC 2: ĐĂNG NHẬP ---
     login_section = page.locator("#operations-default-login_login__post")
     login_section.click()
     login_section.get_by_role("button", name="Try it out").click()
@@ -27,10 +27,15 @@ def api_page(page: Page):
     with page.expect_response("**/login/") as response_info:
         login_section.get_by_role("button", name="Execute").click()
     
-    token = response_info.value.json()['access_token']
+    # Kiểm tra dữ liệu trả về để debug nếu lỗi
+    resp_json = response_info.value.json()
+    if 'access_token' not in resp_json:
+        print(f"LOGIN FAILED. API Response: {resp_json}")
+        raise KeyError(f"API did not return access_token. Status: {response_info.value.status}")
+
+    token = resp_json['access_token']
     page.set_extra_http_headers({"Authorization": f"Bearer {token}"})
     
-    # Đóng mục Login lại cho gọn
     login_section.click()
     return page
 
