@@ -10,24 +10,21 @@ def api_page(page: Page):
     signup_section.click()
     signup_section.get_by_role("button", name="Try it out").click()
     signup_section.locator("textarea.body-param__text").fill(
-        '{"username": "string3006", "password": "string"}'
+        '{"username": "string300", "password": "string"}'
     )
     signup_section.get_by_role("button", name="Execute").click()
-    # Không cần assert chỗ này, nếu user tồn tại rồi thì nó báo lỗi 400 cũng không sao
-    signup_section.click() # Đóng lại
+    signup_section.click()
 
-    # --- BƯỚC 2: ĐĂNG NHẬP ---
     login_section = page.locator("#operations-default-login_login__post")
     login_section.click()
     login_section.get_by_role("button", name="Try it out").click()
     login_section.locator("textarea.body-param__text").fill(
-        '{"username": "string3006", "password": "string"}'
+        '{"username": "string300", "password": "string"}'
     )
 
     with page.expect_response("**/login/") as response_info:
         login_section.get_by_role("button", name="Execute").click()
     
-    # Kiểm tra dữ liệu trả về để debug nếu lỗi
     resp_json = response_info.value.json()
     if 'access_token' not in resp_json:
         print(f"LOGIN FAILED. API Response: {resp_json}")
