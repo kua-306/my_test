@@ -25,6 +25,12 @@ jobs:
     - name: Ensure browsers are installed
       run: python -m playwright install --with-deps
 
+    - name: Start FastAPI
+      run: |
+        pip install uvicorn fastapi
+        python -m uvicorn api:app --host 127.0.0.1 --port 8000 &
+        sleep 5
+
     - name: Run Playwright tests
       # Lưu ý: Vì chạy trên mây không có màn hình, ta bỏ --headed
       run: pytest test_playwright.py

@@ -2,3 +2,7 @@ __pycache__
 *.pyc
 .env
 .env/
+.pytest_cache
+alembic/
+alembic.ini
+logging.log
