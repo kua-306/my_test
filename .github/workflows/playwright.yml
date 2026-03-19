@@ -29,4 +29,7 @@ jobs:
 
       - name: Run UI Test
         run: pytest test_ui.py
+
+      - name: Run Mocking Test
+        run: pytest test_mocking.py
         
