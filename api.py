@@ -17,7 +17,7 @@ from auth import hash_password,verify_password,decode_access_token,create_access
 # from slowapi import Limiter, _rate_limit_exceeded_handler
 # from slowapi.util import get_remote_address
 # from slowapi.errors import RateLimitExceeded
-# from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.cors import CORSMiddleware
 # from database import engine
 from dotenv import load_dotenv  
 load_dotenv()
@@ -31,13 +31,13 @@ async def startup():
         await conn.run_sync(Base.metadata.create_all)
 
 
-# app.add_middleware(
-#     CORSMiddleware,
-#     allow_origins=["*"],
-#     allow_credentials=True,
-#     allow_methods=["*"],
-#     allow_headers=["*"],
-# )
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # def job():
 #    job_time=logger.info('Time at now: ')

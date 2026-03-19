@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test UI - FastAPI & Playwright</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100 p-8">
+    <div class="max-w-md mx-auto bg-white p-6 rounded-lg shadow-md">
+        <h1 class="text-2xl font-bold mb-6 text-center text-blue-600">Hệ thống Câu hỏi</h1>
+
+        <div id="auth-section" class="space-y-4">
+            <h2 class="text-lg font-semibold">Đăng ký & Đăng nhập</h2>
+            <input id="username" type="text" placeholder="Username" class="w-full border p-2 rounded">
+            <input id="password" type="password" placeholder="Password" class="w-full border p-2 rounded">
+            <div class="flex gap-2">
+                <button onclick="handleAuth('/create-user/')"
+                    class="bg-green-500 text-white px-4 py-2 rounded w-1/2 hover:bg-green-600">Đăng ký</button>
+                <button id="login-btn" onclick="handleAuth('/login/')"
+                    class="bg-blue-500 text-white px-4 py-2 rounded w-1/2 hover:bg-blue-600">Đăng nhập</button>
+            </div>
+        </div>
+
+        <hr class="my-6">
+
+        <div id="question-section" class="space-y-4 opacity-50 pointer-events-none">
+            <h2 class="text-lg font-semibold">Tạo câu hỏi mới</h2>
+            <input id="q-text" type="text" placeholder="Câu hỏi" class="w-full border p-2 rounded">
+            <input id="q-ans" type="text" placeholder="Câu trả lời" class="w-full border p-2 rounded">
+            <button onclick="createQuestion()"
+                class="bg-purple-500 text-white px-4 py-2 rounded w-full hover:bg-purple-600">Gửi câu hỏi</button>
+        </div>
+
+        <div id="message" class="mt-4 p-3 rounded hidden text-center font-medium"></div>
+    </div>
+
+    <script>
+        const BASE_URL = "http://127.0.0.1:8000";
+
+        async function handleAuth(endpoint) {
+            const user = document.getElementById('username').value;
+            const pass = document.getElementById('password').value;
+            const msg = document.getElementById('message');
+
+            try {
+                // Với /login/ FastAPI thường dùng Form Data, ở đây mình dùng JSON cho đơn giản nếu Backend hỗ trợ
+                // Nếu Backend dùng OAuth2 chuẩn, cần đổi sang URLSearchParams
+                const response = await fetch(`${BASE_URL}${endpoint}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ username: user, password: pass })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    msg.innerText = endpoint.includes('/login') ? "Đăng nhập thành công!" : "Đăng ký thành công!";
+                    msg.className = "mt-4 p-3 rounded bg-green-100 text-green-700";
+                    if (data.access_token) {
+                        localStorage.setItem('token', data.access_token);
+                        document.getElementById('question-section').classList.remove('opacity-50', 'pointer-events-none');
+                    }
+                } else {
+                    msg.innerText = data.detail || "Có lỗi xảy ra!";
+                    msg.className = "mt-4 p-3 rounded bg-red-100 text-red-700";
+                }
+                msg.classList.remove('hidden');
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function createQuestion() {
+            const q = document.getElementById('q-text').value;
+            const a = document.getElementById('q-ans').value;
+            const token = localStorage.getItem('token');
+            const msg = document.getElementById('message');
+
+            const response = await fetch(`${BASE_URL}/create-question/`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ question: q, answer: a })
+            });
+
+            if (response.ok) {
+                msg.innerText = "Câu hỏi đã được tạo!";
+                msg.className = "mt-4 p-3 rounded bg-blue-100 text-blue-700";
+            } else {
+                msg.innerText = "Lỗi khi tạo câu hỏi!";
+                msg.className = "mt-4 p-3 rounded bg-red-100 text-red-700";
+            }
+        }
+    </script>
+</body>
+
+</html>

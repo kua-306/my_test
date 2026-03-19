@@ -26,3 +26,7 @@ jobs:
 
       - name: Run Playwright tests
         run: pytest test_playwright.py
+
+      - name: Run UI Test
+        run: pytest test_ui.py
+        
