@@ -17,15 +17,13 @@ def test_example(page: Page) -> None:
     page.get_by_role("textbox", name="Password").click()
     page.get_by_role("textbox", name="Password").fill(password)
     page.get_by_role("button", name="Đăng ký").click()
+    page.get_by_role("button", name="Đăng nhập").click()
     expect(page.locator("#question-section")).not_to_have_class(re.compile(r"pointer-events-none"))
-
-    # page.get_by_role("button", name="Đăng nhập").click()
-    # expect(page.locator("#question-section")).to_be_visible
-    # page.get_by_role("textbox", name="Câu hỏi").click()
-    # page.get_by_role("textbox", name="Câu hỏi").fill("hello")
-    # page.get_by_role("textbox", name="Câu trả lời").click()
-    # page.get_by_role("textbox", name="Câu trả lời").fill("hi")
-    # page.get_by_role("button", name="Gửi câu hỏi").click()
-    # expect(page.get_by_text("Câu hỏi đã được tạo!")).to_be_visible()
+    page.get_by_role("textbox", name="Câu hỏi").click()
+    page.get_by_role("textbox", name="Câu hỏi").fill("hello")
+    page.get_by_role("textbox", name="Câu trả lời").click()
+    page.get_by_role("textbox", name="Câu trả lời").fill("hi")
+    page.get_by_role("button", name="Gửi câu hỏi").click()
+    expect(page.get_by_text("Câu hỏi đã được tạo!")).to_be_visible()
     
 
