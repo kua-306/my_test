@@ -1,7 +1,7 @@
-from .base_page import BasePage
+from pages.base_page import BasePage
 
 
-class LoginPage(BasePage):
+class QuestionPage(BasePage):
     def __init__(self,page):
         super().__init__(page)
         self.question = page.get_by_role("textbox", name="Câu hỏi")
