@@ -8,18 +8,14 @@ class SignupPage(BasePage):
         self.login_btn = page.get_by_role("button", name="Đăng nhập")
         self.signup_btn = page.get_by_role("button", name="Đăng ký")
     def signup(self,username,password):
-        self.username.click()
         self.username.fill(username)
-        self.password.click()
         self.password.fill(password)
         self.login_btn.click()
     def login(self,username,password):
-        self.username.click()
         self.username.fill(username)
-        self.password.click()
         self.password.fill(password)
         self.login_btn.click()
     def check(self):
-        self.locator("#question-section").click()
+        self.page.locator("#question-section").click()
         return self.page.get_by_role("button", name="Gửi câu hỏi")
 
