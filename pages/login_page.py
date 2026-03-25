@@ -16,8 +16,7 @@ class SignupPage(BasePage):
         self.password.fill(password)
         self.login_btn.click()
     def check(self):
-        self.page.locator("#question-section")
-        btn = self.page.get_by_role("button", name="Gửi câu hỏi")
-        return btn
+        section = self.page.locator("#question-section")
+        return section
         
 
