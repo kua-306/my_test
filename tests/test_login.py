@@ -12,7 +12,7 @@ def test_signup(page:Page):
     login_page.openurl(f'file://{os.getcwd()}/index.html')
     login_page.signup(username,password)
     # login_page.login(username,password)
-    expect(login_page.check("#question-section")).to_be_enabled()
+    expect(login_page.check()).to_be_enabled()
 
 
 

@@ -9,7 +9,8 @@ class BasePage():
         self.page.goto(url)
     def click_element(self,selector):
         self.page.locator(selector).click()
-    def check(self,text):
-        return self.page.locator(text)
+    def check(self):
+        self.page.locator("#question-section").click()
+        return self.page.get_by_role("button", name="Gửi câu hỏi")
 
         
