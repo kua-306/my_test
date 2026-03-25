@@ -12,9 +12,9 @@ def test_signup(page:Page):
     login_page = SignupPage(page)
     login_page.openurl(f'file://{os.getcwd()}/index.html')
     login_page.signup(username,password)
-    expect(login_page.check()).to_have_class(re.compile(r"pointer-events-none"))
+    expect(login_page.check()).not_to_be_enabled()
     login_page.login(username,password)
-    expect(login_page.check()).not_to_have_class(re.compile(r"pointer-events-none"))
+    expect(login_page.check()).to_be_enabled
 
 
 
