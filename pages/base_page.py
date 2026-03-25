@@ -7,8 +7,7 @@ class BasePage():
         self.page = page
     def openurl(self,url):
         self.page.goto(url)
-    def click_element(self,selector):
-        self.page.locator(selector).click()
+
 
 
         
