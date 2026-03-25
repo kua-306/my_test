@@ -7,11 +7,11 @@ from playwright.sync_api import Page, expect
 num = random.randint(0, 9999)
 username = f'account{num}'
 password = 'password'
-def test_login(login_page:Page):
-    page = LoginPage(login_page)
-    page.openurl('http://127.0.0.1:8000')
-    page.login(username,password)
-    expect(page.check("Câu hỏi đã được tạo!"))
+def test_login(page:Page):
+    login_page = LoginPage(page)
+    login_page.openurl('http://127.0.0.1:8000')
+    login_page.login(username,password)
+    expect(login_page.check("Câu hỏi đã được tạo!"))
 
 
 
